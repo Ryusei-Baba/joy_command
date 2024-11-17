@@ -23,10 +23,16 @@ private:
     // サブスクライバのコールバック
     void joyCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
     {
+        if (msg->buttons.size() <= 1) {
+            RCLCPP_WARN(this->get_logger(), "Joy message does not contain enough buttons.");
+            return;
+        }
+
         int current_button_state = msg->buttons[1]; // ボタン[1]の状態を取得
 
         // ボタンが「押されていない -> 押された」に変化したときのみサービスを送信
         if (current_button_state == 1 && previous_button_state_ == 0) {
+            RCLCPP_INFO(this->get_logger(), "Button pressed, sending service request...");
             sendTriggerRequest();
         }
 
@@ -67,6 +73,7 @@ int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<JoyServiceNode>();
+    RCLCPP_INFO(node->get_logger(), "Node is starting...");
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
