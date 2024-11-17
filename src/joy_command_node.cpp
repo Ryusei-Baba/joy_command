@@ -5,68 +5,51 @@
 class JoyServiceNode : public rclcpp::Node
 {
 public:
-    JoyServiceNode()
-        : Node("joy_service_node")
+    JoyServiceNode() : Node("joy_command_node"), button_state_(0)
     {
-        // サブスクライバの設定
-        joy_subscription_ = this->create_subscription<sensor_msgs::msg::Joy>(
-            "joy", 10, std::bind(&JoyServiceNode::joyCallback, this, std::placeholders::_1));
+        // Joyメッセージのサブスクリプションを作成
+        joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
+            "joy", 10, std::bind(&JoyServiceNode::joy_callback, this, std::placeholders::_1));
 
-        // クライアントの設定
-        service_client_ = this->create_client<std_srvs::srv::Trigger>("/waypoint_manager2/next_wp");
-
-        RCLCPP_INFO(this->get_logger(), "JoyServiceNode initialized");
+        // Triggerサービスのクライアントを作成
+        client_ = this->create_client<std_srvs::srv::Trigger>("/waypoint_manager2/next_wp");
     }
 
 private:
-    // サブスクライバのコールバック
-    void joyCallback(const sensor_msgs::msg::Joy::SharedPtr msg)
+    void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
     {
-        if (msg->buttons.size() <= 1) {
-            RCLCPP_WARN(this->get_logger(), "Joy message does not contain enough buttons.");
-            return;
-        }
-
-        // ボタン[1]が押されているときだけサービスを送信
-        if (msg->buttons[1] == 1) {
-            RCLCPP_INFO(this->get_logger(), "Button pressed, sending service request...");
-            sendTriggerRequest();
+        if (msg->buttons[1] != button_state_)
+        {
+            button_state_ = msg->buttons[1];
+            if (button_state_ == 1)
+            {
+                call_service();
+            }
         }
     }
 
-    // サービスリクエストの送信
-    void sendTriggerRequest()
+    void call_service()
     {
-        if (!service_client_->wait_for_service(std::chrono::seconds(1))) {
-            RCLCPP_WARN(this->get_logger(), "Service '/waypoint_manager2/next_wp' not available");
+        if (!client_->wait_for_service(std::chrono::seconds(1)))
+        {
+            RCLCPP_WARN(this->get_logger(), "Service not available");
             return;
         }
 
         auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-
-        // 非同期リクエストの送信
-        auto future = service_client_->async_send_request(request);
-
-        // 結果の処理（ログの出力のみ）
-        future.wait(); // ブロッキングして結果を取得
-        try {
-            auto response = future.get(); // 結果を取得
-            RCLCPP_INFO(this->get_logger(), "Service call succeeded: %s", response->message.c_str());
-        } catch (const std::exception &e) {
-            RCLCPP_ERROR(this->get_logger(), "Service call failed: %s", e.what());
-        }
+        RCLCPP_INFO(this->get_logger(), "send next_wp");
+        client_->async_send_request(request);
     }
 
-    // メンバ変数
-    rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscription_;
-    rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr service_client_;
+    rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
+    rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_;
+    int button_state_;
 };
 
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<JoyServiceNode>();
-    RCLCPP_INFO(node->get_logger(), "Node is starting...");
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
