@@ -6,8 +6,7 @@ class JoyServiceNode : public rclcpp::Node
 {
 public:
     JoyServiceNode()
-        : Node("joy_service_node"),
-          previous_button_state_(0) // ボタンの初期状態を0（押されていない状態）に設定
+        : Node("joy_service_node")
     {
         // サブスクライバの設定
         joy_subscription_ = this->create_subscription<sensor_msgs::msg::Joy>(
@@ -28,16 +27,11 @@ private:
             return;
         }
 
-        int current_button_state = msg->buttons[1]; // ボタン[1]の状態を取得
-
-        // ボタンが「押されていない -> 押された」に変化したときのみサービスを送信
-        if (current_button_state == 1 && previous_button_state_ == 0) {
+        // ボタン[1]が押されているときだけサービスを送信
+        if (msg->buttons[1] == 1) {
             RCLCPP_INFO(this->get_logger(), "Button pressed, sending service request...");
             sendTriggerRequest();
         }
-
-        // 現在のボタン状態を保存
-        previous_button_state_ = current_button_state;
     }
 
     // サービスリクエストの送信
@@ -66,7 +60,6 @@ private:
     // メンバ変数
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscription_;
     rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr service_client_;
-    int previous_button_state_; // 前回のボタン状態
 };
 
 int main(int argc, char *argv[])
