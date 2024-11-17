@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>joy_command_node</name>
+  <name>joy_command</name>
   <version>0.1.0</version>
-  <description>Joy Command Node</description>
+  <description>Joy Command</description>
 
   <maintainer email="babaryusei.kw@gmail.com">Ryusei Baba</maintainer>
   <license>BSD</license>
