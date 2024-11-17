@@ -9,17 +9,21 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 
-add_executable(${PROJECT_NAME} src/joy_command_node.cpp)
+add_executable(joy_command_node src/joy_command_node.cpp)
 
-ament_target_dependencies(${PROJECT_NAME}
+ament_target_dependencies(joy_command_node
   rclcpp
   sensor_msgs
   std_srvs
 )
 
 install(TARGETS
-  ${PROJECT_NAME}
+  joy_command_node
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
 )
 
 ament_package()
