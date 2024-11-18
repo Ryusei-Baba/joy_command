@@ -2,16 +2,14 @@
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
-class JoyServiceNode : public rclcpp::Node
+class JoyCommandNode : public rclcpp::Node
 {
 public:
-    JoyServiceNode() : Node("joy_command_node"), button_state_(0)
+    JoyCommandNode() : Node("joy_command_node"), button_state_(0)
     {
-        // Joyメッセージのサブスクリプションを作成
         joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
-            "joy", 10, std::bind(&JoyServiceNode::joy_callback, this, std::placeholders::_1));
+            "joy", 10, std::bind(&JoyCommandNode::joy_callback, this, std::placeholders::_1));
 
-        // Triggerサービスのクライアントを作成
         client_ = this->create_client<std_srvs::srv::Trigger>("/waypoint_manager2/next_wp");
     }
 
@@ -30,7 +28,7 @@ private:
 
     void call_service()
     {
-        if (!client_->wait_for_service(std::chrono::seconds(1)))
+        if (!client_->wait_for_service(std::chrono::seconds(3)))
         {
             RCLCPP_WARN(this->get_logger(), "Service not available");
             return;
@@ -49,7 +47,7 @@ private:
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<JoyServiceNode>();
+    auto node = std::make_shared<JoyCommandNode>();
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
